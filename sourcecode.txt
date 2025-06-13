@@ -1,0 +1,77 @@
+#define TOUCH1 13
+#define TOUCH2 12
+#define TOUCH3 14
+#define TOUCH4 27
+#define RELAY  26
+#define GREEN_LED 25 // ✅ Green LED pin
+#define RED_LED   33   // ✅ Blue LED pin
+
+// Define your passkey sequence using sensor indexes (1 to 4)
+int correctSequence[] = {1,3,2,2};
+int inputSequence[4];
+int inputIndex = 0;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(RELAY, OUTPUT);
+  digitalWrite(RELAY, HIGH);  // Lock is OFF initially
+
+  pinMode(GREEN_LED, OUTPUT); // ✅ Setup LED pins
+  pinMode(RED_LED, OUTPUT);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(RED_LED, LOW);
+  
+}
+
+void loop() {
+  int touched = getTouchInput();
+  if (touched != 0) {
+    Serial.print("Touched: ");
+    Serial.println(touched);
+
+    inputSequence[inputIndex] = touched;
+    inputIndex++;
+
+    if (inputIndex == 4) {
+      if (checkPasskey()) {
+        Serial.println("Correct passkey! Unlocking...");
+        digitalWrite(RELAY, LOW); // Turn ON lock
+
+        digitalWrite(GREEN_LED, HIGH);   // ✅ Green LED ON
+        digitalWrite(RED_LED, LOW);      // 🔴 Blue LED OFF        
+        delay(5000);               // Keep it unlocked for 5 seconds
+        digitalWrite(RELAY, HIGH);  // Lock again
+        digitalWrite(GREEN_LED, LOW);    // Turn off green LED
+        
+      } else {
+        Serial.println("Wrong passkey!");
+        digitalWrite(RELAY, HIGH);
+        
+        digitalWrite(RED_LED, HIGH);     // 🔴 Blue LED ON
+        digitalWrite(GREEN_LED, LOW);    // ✅ Green LED OFF
+        delay(2000);                     // Keep red LED ON for 2 sec
+        digitalWrite(RED_LED, LOW);      // Turn off red LED
+        
+      }
+      inputIndex = 0;  // Reset input
+    }
+    delay(500); // Debounce delay
+  }
+}
+
+// Returns 1 to 4 based on which sensor is touched
+int getTouchInput() {
+  if (digitalRead(TOUCH1) == HIGH) return 1;
+  if (digitalRead(TOUCH2) == HIGH) return 2;
+  if (digitalRead(TOUCH3) == HIGH) return 3;
+  if (digitalRead(TOUCH4) == HIGH) return 4;
+  return 0;
+}
+
+// Check if input matches the correct sequence
+bool checkPasskey() {
+  for (int i = 0; i < 4; i++) {
+    if (inputSequence[i] != correctSequence[i]) return false;
+  }
+  return true;
+}
